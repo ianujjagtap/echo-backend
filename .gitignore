@@ -7,7 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# ignore node_modules
 node_modules
+
+# package files
+package-lock.json
 dist
 dist-ssr
 *.local
