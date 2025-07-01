@@ -1,31 +1,31 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
+import express from 'express';
+import { verify, sign } from 'jsonwebtoken';
+import { json } from 'body-parser';
+import { Schema, model, connect } from 'mongoose';
 const app = express();
-const cors = require('cors');
+import cors from 'cors';
 
 const SECRET = 'SECr3t';
 
-app.use(bodyParser.json());
+app.use(json());
 app.use(cors({origin:'*'}));
 
 
-const conversationSchema = new mongoose.Schema({
+const conversationSchema = new Schema({
     prompt:{type:String , required:true},
     response:{type:String,required:true},
     timestamp: { type: Date, default: Date.now },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
 });
-const Conversation = mongoose.model('Conversation', conversationSchema);
+const Conversation = model('Conversation', conversationSchema);
 
 
-const userSchema = new mongoose.Schema({
+const userSchema = new Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
-    conversations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }]
+    conversations: [{ type: Schema.Types.ObjectId, ref: 'Conversation' }]
 });
-const User = mongoose.model('User', userSchema);
+const User = model('User', userSchema);
 
 
 const authenticateJwt = async (req, res, next) => {
@@ -33,7 +33,7 @@ const authenticateJwt = async (req, res, next) => {
     if (authHeader) {
         const token = authHeader.split(' ')[1];
         try {
-            const decoded = jwt.verify(token, SECRET);
+            const decoded = verify(token, SECRET);
             const user = await User.findById(decoded._id);
             if (!user) {
                 return res.sendStatus(403);
@@ -49,10 +49,7 @@ const authenticateJwt = async (req, res, next) => {
     }
 };
 
-
-
-
-mongoose.connect('mongodb+srv://anujjagtap2004:hKFxCEiAcTwu9ckS@cluster0.vwkaqkl.mongodb.net/')
+connect('mongodb+srv://anujjagtap2004:hKFxCEiAcTwu9ckS@cluster0.vwkaqkl.mongodb.net/')
 
 
 app.post('/signup', (req, res) => {
@@ -65,8 +62,8 @@ app.post('/signup', (req, res) => {
                 const newUser = new User({ username, password });
                 newUser.save()
                     .then((savedUser) => {
-                        const token = jwt.sign({ _id: savedUser._id, username, role: "admin" }, SECRET, { expiresIn: '1h' });
-                        res.json({ message: 'User Created Successfully', token });
+                        const token = sign({ _id: savedUser._id, username, role: "admin" }, SECRET, { expiresIn: '1h' });
+                        res.status(201).json({ message: 'User Created Successfully', token });
                     })
                     .catch(err => console.error(err));
             }
@@ -81,7 +78,7 @@ app.post('/login', async (req, res) => {
     try {
         const user = await User.findOne({ username, password });
         if (user) {
-            const token = jwt.sign({ _id: user._id, username, role: "user" }, SECRET, { expiresIn: '1h' });
+            const token = sign({ _id: user._id, username, role: "user" }, SECRET, { expiresIn: '1h' });
             res.json({ message: 'Logged In Successfully', token });
         } else {
             res.status(403).json({ message: 'Invalid Username Or Password' });
